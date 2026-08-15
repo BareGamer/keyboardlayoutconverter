@@ -1,7 +1,13 @@
 import time
+import threading
+
 import win32clipboard
 import win32con
 import keyboard
+import pystray
+
+from PIL import Image, ImageDraw
+
 
 # ====================== Character map ======================
 en_to_ru = {
@@ -23,12 +29,14 @@ en_to_ru = {
 
 ru_to_en = {v: k for k, v in en_to_ru.items()}
 
+
 def convert_layout(text: str) -> str:
     if not text:
         return text
     has_russian = any(('а' <= c.lower() <= 'я') or c in 'ёЁ' for c in text)
     table = ru_to_en if has_russian else en_to_ru
     return ''.join(table.get(c, c) for c in text)
+
 
 # ====================== working with the clipboard buffer ======================
 def get_clipboard_text():
@@ -44,6 +52,7 @@ def get_clipboard_text():
             pass
         return None
 
+
 def set_clipboard_text(text: str) -> bool:
     try:
         win32clipboard.OpenClipboard()
@@ -58,6 +67,7 @@ def set_clipboard_text(text: str) -> bool:
             pass
         return False
 
+
 def clear_clipboard():
     try:
         win32clipboard.OpenClipboard()
@@ -68,6 +78,7 @@ def clear_clipboard():
             win32clipboard.CloseClipboard()
         except:
             pass
+
 
 def process_hotkey():
     old_clipboard = get_clipboard_text()
@@ -100,6 +111,63 @@ def process_hotkey():
         time.sleep(0.04)
         keyboard.send('ctrl+v')
 
+
+# ====================== System tray ======================
+
+enabled = True
+
+
+def toggle_enabled(icon, item):
+    global enabled
+    enabled = not enabled
+    icon.menu = create_menu()
+
+
+def quit_application(icon, item):
+    keyboard.unhook_all_hotkeys()
+    icon.stop()
+
+
+def create_icon_image():
+    image = Image.new('RGB', (64, 64), 'white')
+    draw = ImageDraw.Draw(image)
+
+    draw.rectangle(
+        (4, 4, 60, 60),
+        outline='black',
+        width=3
+    )
+
+    draw.text(
+        (16, 20),
+        'RU',
+        fill='black'
+    )
+
+    return image
+
+
+def create_menu():
+    return pystray.Menu(
+        pystray.MenuItem(
+            'Enabled',
+            toggle_enabled,
+            checked=lambda item: enabled
+        ),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem(
+            'Hotkey: Ctrl + Shift + M',
+            lambda icon, item: None,
+            enabled=False
+        ),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem(
+            'Exit',
+            quit_application
+        )
+    )
+
+
 def main():
     print("Program running.")
     print("Hotkey: Ctrl + Shift + M")
@@ -107,7 +175,16 @@ def main():
     print("To exit press Ctrl+C in the console.\n")
 
     keyboard.add_hotkey('ctrl+shift+m', process_hotkey)
-    keyboard.wait()
+
+    icon = pystray.Icon(
+        'KeyboardLayoutConverter',
+        create_icon_image(),
+        'Keyboard Layout Converter',
+        menu=create_menu()
+    )
+
+    icon.run()
+
 
 if __name__ == "__main__":
     main()
