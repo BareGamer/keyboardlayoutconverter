@@ -3,7 +3,7 @@ import win32clipboard
 import win32con
 import keyboard
 
-# ====================== Таблицы раскладок ======================
+# ====================== Character map ======================
 en_to_ru = {
     'q': 'й', 'w': 'ц', 'e': 'у', 'r': 'к', 't': 'е',
     'y': 'н', 'u': 'г', 'i': 'ш', 'o': 'щ', 'p': 'з',
@@ -30,7 +30,7 @@ def convert_layout(text: str) -> str:
     table = ru_to_en if has_russian else en_to_ru
     return ''.join(table.get(c, c) for c in text)
 
-# ====================== Работа с буфером ======================
+# ====================== working with the clipboard buffer ======================
 def get_clipboard_text():
     try:
         win32clipboard.OpenClipboard()
@@ -69,51 +69,42 @@ def clear_clipboard():
         except:
             pass
 
-# ====================== Основная логика ======================
 def process_hotkey():
-    # 1. Сохраняем текущий буфер
     old_clipboard = get_clipboard_text()
 
     # 2. Очищаем буфер, чтобы потом понять, сработал ли Ctrl+C
     clear_clipboard()
     time.sleep(0.03)
 
-    # 3. Копируем выделенный текст
+    # copying the selected text
     keyboard.send('ctrl+c')
 
-    # 4. Ждём, пока буфер изменится (максимум ~0.4 сек)
+    # waiting for the buffer to update (~0.4s)
     new_text = None
-    for _ in range(20):  # 20 * 20мс = 400мс
+    for _ in range(20):  # 20 * 20ms = 400ms
         time.sleep(0.02)
         new_text = get_clipboard_text()
         if new_text is not None and new_text != "":
             break
 
-    # 5. Если ничего не скопировалось — восстанавливаем старый буфер и выходим
+    # if copying was unsuccessful, restore the old buffer
     if not new_text:
         if old_clipboard is not None:
             set_clipboard_text(old_clipboard)
         return
 
-    # 6. Конвертируем
     converted = convert_layout(new_text)
 
-    # 7. Кладём результат и вставляем
+    # trying to insert new text into the buffer
     if set_clipboard_text(converted):
         time.sleep(0.04)
         keyboard.send('ctrl+v')
 
-        # 8. (Опционально) восстанавливаем старый буфер через небольшую паузу
-        # Раскомментируйте, если хотите, чтобы после вставки в буфере оставался старый текст
-        # time.sleep(0.15)
-        # if old_clipboard is not None:
-        #     set_clipboard_text(old_clipboard)
-
 def main():
-    print("Программа запущена.")
-    print("Горячая клавиша: Ctrl + Shift + M")
-    print("Выделите текст и нажмите комбинацию.")
-    print("Для выхода нажмите Ctrl+C в консоли.\n")
+    print("Program running.")
+    print("Hotkey: Ctrl + Shift + M")
+    print("Select the text and press the hotkey to run the program.")
+    print("To exit press Ctrl+C in the console.\n")
 
     keyboard.add_hotkey('ctrl+shift+m', process_hotkey)
     keyboard.wait()
