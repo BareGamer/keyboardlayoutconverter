@@ -1,13 +1,10 @@
 import time
-import threading
 
-import win32clipboard
-import win32con
 import keyboard
 import pystray
-
+import win32clipboard
+import win32con
 from PIL import Image, ImageDraw
-
 
 # ====================== Character map ======================
 en_to_ru = {
@@ -45,11 +42,11 @@ def get_clipboard_text():
         data = win32clipboard.GetClipboardData(win32con.CF_UNICODETEXT)
         win32clipboard.CloseClipboard()
         return data
-    except:
+    except Exception as e:
         try:
             win32clipboard.CloseClipboard()
-        except:
-            pass
+        except Exception as close_err:
+            print(f"[Error] Close clipboard error: {close_err}")
         return None
 
 
@@ -60,11 +57,12 @@ def set_clipboard_text(text: str) -> bool:
         win32clipboard.SetClipboardData(win32con.CF_UNICODETEXT, text)
         win32clipboard.CloseClipboard()
         return True
-    except:
+    except Exception as e:
+        print(f"[Error] Set clipboard error: {e}")
         try:
             win32clipboard.CloseClipboard()
-        except:
-            pass
+        except Exception as close_err:
+            print(f"[Error] Close clipboard error: {close_err}")
         return False
 
 
@@ -73,11 +71,12 @@ def clear_clipboard():
         win32clipboard.OpenClipboard()
         win32clipboard.EmptyClipboard()
         win32clipboard.CloseClipboard()
-    except:
+    except Exception as e:
+        print(f"[Error] Clear clipboard error: {e}")
         try:
             win32clipboard.CloseClipboard()
-        except:
-            pass
+        except Exception as close_err:
+            print(f"[Error] Close clipboard error: {close_err}")
 
 
 def process_hotkey():
@@ -86,14 +85,14 @@ def process_hotkey():
 
     old_clipboard = get_clipboard_text()
 
-    # 2. Очищаем буфер, чтобы потом понять, сработал ли Ctrl+C
     clear_clipboard()
     time.sleep(0.03)
 
-    # copying the selected text
+    keyboard.send('ctrl+a')
+    time.sleep(0.03)
+
     keyboard.send('ctrl+c')
 
-    # waiting for the buffer to update (~0.4s)
     new_text = None
     for _ in range(20):  # 20 * 20ms = 400ms
         time.sleep(0.02)
@@ -101,7 +100,7 @@ def process_hotkey():
         if new_text is not None and new_text != "":
             break
 
-    # if copying was unsuccessful, restore the old buffer
+    # Clear the buffer to later see if Ctrl+C worked.
     if not new_text:
         if old_clipboard is not None:
             set_clipboard_text(old_clipboard)
@@ -109,7 +108,7 @@ def process_hotkey():
 
     converted = convert_layout(new_text)
 
-    # trying to insert new text into the buffer
+    # Пытаемся вставить новый текст в буфер и заменить его в поле
     if set_clipboard_text(converted):
         time.sleep(0.04)
         keyboard.send('ctrl+v')
@@ -143,7 +142,7 @@ def create_icon_image():
 
     draw.text(
         (16, 20),
-        'RU',
+        'KLC',
         fill='black'
     )
 
@@ -174,7 +173,7 @@ def create_menu():
 def main():
     print("Program running.")
     print("Hotkey: Ctrl + ;")
-    print("Select the text and press the hotkey to run the program.")
+    print("Select the text or place cursor in a field and press the hotkey to run.")
     print("To exit press Ctrl+C in the console.\n")
 
     keyboard.add_hotkey('ctrl+;', process_hotkey)
