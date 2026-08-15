@@ -3,3 +3,6 @@
 /build
 /dist
 main.spec
+src/core/autostart.spec
+/src/core/build
+/src/core/dist
