@@ -1,2 +1,5 @@
 .idea/inspectionProfiles/profiles_settings.xml
 /.idea
+/build
+/dist
+main.spec

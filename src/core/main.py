@@ -81,6 +81,9 @@ def clear_clipboard():
 
 
 def process_hotkey():
+    if not enabled:
+        return
+
     old_clipboard = get_clipboard_text()
 
     # 2. Очищаем буфер, чтобы потом понять, сработал ли Ctrl+C
@@ -156,7 +159,7 @@ def create_menu():
         ),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem(
-            'Hotkey: Ctrl + Shift + M',
+            'Hotkey: Ctrl + ;',
             lambda icon, item: None,
             enabled=False
         ),
@@ -170,11 +173,11 @@ def create_menu():
 
 def main():
     print("Program running.")
-    print("Hotkey: Ctrl + Shift + M")
+    print("Hotkey: Ctrl + ;")
     print("Select the text and press the hotkey to run the program.")
     print("To exit press Ctrl+C in the console.\n")
 
-    keyboard.add_hotkey('ctrl+shift+m', process_hotkey)
+    keyboard.add_hotkey('ctrl+;', process_hotkey)
 
     icon = pystray.Icon(
         'KeyboardLayoutConverter',
